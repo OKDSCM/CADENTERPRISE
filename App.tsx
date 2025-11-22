@@ -8,10 +8,23 @@ import { generateCase } from './services/geminiService';
 import { FrequencyScanner } from './components/FrequencyScanner';
 
 // --- MOCK DATA GENERATOR ---
-const generateMockCitizens = (count: number): Citizen[] => {
-  const firstNames = ["John", "Jane", "Michael", "Emily", "David", "Sarah", "Robert", "Jessica", "William", "Ashley", "James", "Linda", "George", "Patricia", "Joseph", "Elizabeth", "Thomas", "Jennifer", "Charles", "Maria"];
-  const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"];
-  const streets = ["Maple", "Oak", "Washington", "Park", "Lake", "Hill", "Cedar", "High", "Elm", "Main"];
+const generateMockCitizens = (count: number, mapId: string): Citizen[] => {
+  const isFinnishMap = mapId === 'kirkkonummi';
+
+  // English Names
+  const firstNamesEn = ["John", "Jane", "Michael", "Emily", "David", "Sarah", "Robert", "Jessica", "William", "Ashley", "James", "Linda", "George", "Patricia", "Joseph", "Elizabeth", "Thomas", "Jennifer", "Charles", "Maria"];
+  const lastNamesEn = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"];
+  const streetsEn = ["Maple", "Oak", "Washington", "Park", "Lake", "Hill", "Cedar", "High", "Elm", "Main"];
+  
+  // Finnish Names
+  const firstNamesFi = ["Matti", "Pekka", "Antti", "Jukka", "Mikko", "Timo", "Hannu", "Kari", "Jari", "Seppo", "Janne", "Ari", "Markku", "Juha", "Ville", "Minna", "Sari", "Tiina", "Leena", "Pirjo", "Tuula", "Tarja", "Päivi", "Anne", "Eeva"];
+  const lastNamesFi = ["Korhonen", "Virtanen", "Mäkinen", "Nieminen", "Mäkelä", "Hämäläinen", "Laine", "Heikkinen", "Koskinen", "Järvinen", "Lehtonen", "Lehtinen", "Saarinen", "Salminen", "Heinonen", "Niemi", "Kinnunen", "Salonen", "Turunen", "Salo"];
+  const streetsFi = ["Munkinpolku", "Asematie", "Kirkkotallintie", "Ervastintie", "Upinniementie", "Rantatie", "Koulupolku", "Tinantie", "Överbyntie", "Gesterbyntie", "Piippopolku", "Toritie"];
+
+  const firstNames = isFinnishMap ? firstNamesFi : firstNamesEn;
+  const lastNames = isFinnishMap ? lastNamesFi : lastNamesEn;
+  const streets = isFinnishMap ? streetsFi : streetsEn;
+
   const jobs = ["Accountant", "Nurse", "Teacher", "Engineer", "Sales", "Driver", "Clerk", "Manager", "Student", "Retired", "Mechanic", "Chef", "Security", "Artist", "Unemployed"];
 
   return Array.from({ length: count }).map((_, i) => {
@@ -24,7 +37,7 @@ const generateMockCitizens = (count: number): Citizen[] => {
       age: 18 + Math.floor(Math.random() * 60),
       gender: Math.random() > 0.5 ? 'Male' : 'Female',
       occupation: jobs[Math.floor(Math.random() * jobs.length)],
-      address: `${Math.floor(Math.random() * 900) + 100} ${streets[Math.floor(Math.random() * streets.length)]} St`,
+      address: `${Math.floor(Math.random() * 900) + 100} ${streets[Math.floor(Math.random() * streets.length)]} ${isFinnishMap ? '' : 'St'}`,
       ssn: `${Math.floor(100+Math.random()*899)}-${Math.floor(10+Math.random()*89)}-${Math.floor(1000+Math.random()*8999)}`,
       phone: `555-${Math.floor(100+Math.random()*899)}-${Math.floor(1000+Math.random()*8999)}`,
       height: `${5 + Math.floor(Math.random()*2)}'${Math.floor(Math.random()*11)}"`,
@@ -42,7 +55,8 @@ const generateMockCitizens = (count: number): Citizen[] => {
 
 const MAP_OPTIONS: MapConfig[] = [
   { id: 'map1', name: 'DOWNTOWN SECTOR A', url: 'https://i.postimg.cc/GmfbF3W8/image.png' },
-  { id: 'map2', name: 'NORTH DISTRICT', url: 'https://i.postimg.cc/rFhpjRzs/image.png' }
+  { id: 'map2', name: 'NORTH DISTRICT', url: 'https://i.postimg.cc/rFhpjRzs/image.png' },
+  { id: 'kirkkonummi', name: 'KIRKKONUMMI', url: 'https://i.postimg.cc/DzKMxXnt/image.png' }
 ];
 
 // --- TRANSLATIONS ---
@@ -115,7 +129,7 @@ const translations = {
 
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language | null>(null);
-  const [selectedMapUrl, setSelectedMapUrl] = useState<string | null>(null);
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [gameState, setGameState] = useState<GameState>(GameState.DASHBOARD);
   const [activeCase, setActiveCase] = useState<CaseData | null>(null);
@@ -126,10 +140,6 @@ const App: React.FC = () => {
   const [activeEmergency, setActiveEmergency] = useState<Emergency | null>(null);
   const [emergencyTimer, setEmergencyTimer] = useState(0);
   const [emergencyResult, setEmergencyResult] = useState<string | null>(null);
-
-  useEffect(() => {
-    setCitizenDB(generateMockCitizens(200));
-  }, []);
 
   // Random Emergency Loop
   useEffect(() => {
@@ -223,11 +233,16 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [dispatchQueue]);
 
+  const handleSelectMap = (mapId: string) => {
+    setSelectedMapId(mapId);
+    setCitizenDB(generateMockCitizens(200, mapId));
+  };
+
   const handleOpenCase = async () => {
-    if (!language || !difficulty) return;
+    if (!language || !difficulty || !selectedMapId) return;
     setLoadingCase(true);
     try {
-      const newCase = await generateCase(language, difficulty);
+      const newCase = await generateCase(language, difficulty, selectedMapId);
       setActiveCase(newCase);
       // Add coords to new suspects and ensure they are in the map DB
       const enhancedSuspects = newCase.suspects.map(s => ({
@@ -304,16 +319,16 @@ const App: React.FC = () => {
 
   const t = translations[language];
 
-  if (!selectedMapUrl) {
+  if (!selectedMapId) {
     return (
       <div className="w-screen h-screen bg-slate-900 flex items-center justify-center">
          <div className="bg-black border border-slate-700 p-8 rounded-lg max-w-4xl w-full shadow-[0_0_40px_rgba(0,0,0,0.5)]">
             <h1 className="text-3xl text-center font-mono text-blue-400 mb-8 uppercase tracking-[0.2em]">{t.selectMap}</h1>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                {MAP_OPTIONS.map(map => (
                  <div 
                    key={map.id}
-                   onClick={() => setSelectedMapUrl(map.url)}
+                   onClick={() => handleSelectMap(map.id)}
                    className="group relative border-2 border-slate-700 hover:border-blue-500 rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02]"
                  >
                    <div className="h-48 bg-slate-800">
@@ -335,7 +350,7 @@ const App: React.FC = () => {
     return (
       <div className="w-screen h-screen bg-slate-900 flex items-center justify-center overflow-hidden relative">
         {/* Background visual noise */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://i.postimg.cc/GmfbF3W8/image.png')] bg-cover blur-sm"></div>
+        <div className="absolute inset-0 opacity-10 pointer-events-none bg-cover blur-sm" style={{ backgroundImage: `url(${MAP_OPTIONS.find(m => m.id === selectedMapId)?.url})` }}></div>
         <div className="scanlines"></div>
 
         <div className="z-10 bg-black/80 p-8 rounded-lg shadow-[0_0_50px_rgba(59,130,246,0.3)] border border-slate-600 max-w-3xl w-full backdrop-blur text-center">
@@ -393,7 +408,12 @@ const App: React.FC = () => {
           {t.mapSystem}
         </div>
         <div className="flex-1 h-full">
-          <CityMap dispatchQueue={dispatchQueue} citizens={citizenDB} language={language} mapUrl={selectedMapUrl} />
+          <CityMap 
+            dispatchQueue={dispatchQueue} 
+            citizens={citizenDB} 
+            language={language} 
+            mapUrl={MAP_OPTIONS.find(m => m.id === selectedMapId)?.url} 
+          />
         </div>
       </div>
 

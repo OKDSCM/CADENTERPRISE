@@ -4,7 +4,7 @@ import { CaseData, Citizen, Language, Difficulty, PoliceUnit } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const SCENE_IMAGES = [
+const DEFAULT_SCENE_IMAGES = [
   "https://i.postimg.cc/BQXSX1zB/image.png",
   "https://i.postimg.cc/PJckm2cH/image.png",
   "https://i.postimg.cc/jdJpp6mR/image.png",
@@ -13,6 +13,14 @@ const SCENE_IMAGES = [
   "https://i.postimg.cc/FKB5tPrh/image.png",
   "https://i.postimg.cc/sXgFqkdP/image.png",
   "https://i.postimg.cc/sgjtMFx8/image.png"
+];
+
+const KIRKKONUMMI_SCENE_IMAGES = [
+  "https://i.postimg.cc/YSbzQG9w/image.png",
+  "https://i.postimg.cc/zGY7NY6T/image.png",
+  "https://i.postimg.cc/MKQ5gpPz/image.png",
+  "https://i.postimg.cc/NFW4L307/image.png",
+  "https://i.postimg.cc/qqtwJJpN/image.png"
 ];
 
 // Schema for generating realistic cases
@@ -72,8 +80,14 @@ const CASE_SCHEMA: Schema = {
   required: ["type", "title", "caseNumber", "description", "location", "priority", "timestamp", "suspects", "evidence", "correctSolution"],
 };
 
-export const generateCase = async (lang: Language, difficulty: Difficulty): Promise<CaseData> => {
+export const generateCase = async (lang: Language, difficulty: Difficulty, mapId: string): Promise<CaseData> => {
   const langInstruction = lang === 'FI' ? "GENERATE ALL CONTENT IN FINNISH (SUOMI). Use Finnish names for locations/people if appropriate." : "Generate content in English.";
+  const isKirkkonummi = mapId === 'kirkkonummi';
+
+  let mapInstruction = "";
+  if (isKirkkonummi) {
+     mapInstruction = "IMPORTANT: The location is Kirkkonummi, Finland. Use Finnish names for ALL suspects, witnesses, and streets (e.g. surnames like Virtanen, Korhonen, Mäkinen).";
+  }
 
   let difficultyInstruction = "";
   switch(difficulty) {
@@ -99,7 +113,8 @@ export const generateCase = async (lang: Language, difficulty: Difficulty): Prom
       model: "gemini-2.5-flash",
       contents: `Generate a realistic urban police investigation case. No sci-fi. Realistic crimes only. 
       ${difficultyInstruction}
-      ${langInstruction}`,
+      ${langInstruction}
+      ${mapInstruction}`,
       config: {
         responseMimeType: "application/json",
         responseSchema: CASE_SCHEMA,
@@ -123,8 +138,9 @@ export const generateCase = async (lang: Language, difficulty: Difficulty): Prom
       isSuspectInCaseId: data.id,
     }));
 
-    // Select random scene image
-    const randomImage = SCENE_IMAGES[Math.floor(Math.random() * SCENE_IMAGES.length)];
+    // Select random scene image based on map
+    const sceneImages = isKirkkonummi ? KIRKKONUMMI_SCENE_IMAGES : DEFAULT_SCENE_IMAGES;
+    const randomImage = sceneImages[Math.floor(Math.random() * sceneImages.length)];
 
     return { ...data, id: crypto.randomUUID(), suspects: enhancedSuspects, imageUrl: randomImage };
   } catch (error) {
@@ -194,7 +210,7 @@ export const performUnitAction = async (unit: PoliceUnit, instruction: string, c
     Your Task:
     - If the instruction matches your specialty (e.g. Forensics checking for prints), give a Realistic result.
     - If the instruction reveals a clue mentioned in the solution, HINT at it strongly.
-    - Be concise. Use radio terminology (e.g., "10-4", "Copy that").
+    - Be concise. Use radio terminology (e.g. "10-4", "Copy that").
     ${langInstruction}
    `;
 
