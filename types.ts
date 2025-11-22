@@ -1,6 +1,8 @@
 
 export type Language = 'EN' | 'FI';
 
+export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'INSANE' | 'UNSOLVABLE';
+
 export enum GameState {
   DASHBOARD = 'DASHBOARD',
   ACTIVE_CASE = 'ACTIVE_CASE',
@@ -79,4 +81,14 @@ export interface ChatMessage {
   text: string;
   timestamp: number;
   isSystem?: boolean;
+}
+
+export interface Emergency {
+  id: string;
+  type: 'DECISION' | 'TRACKING';
+  title: string;
+  description: string;
+  options?: { label: string; correct: boolean }[];
+  duration: number; // seconds
+  active: boolean;
 }

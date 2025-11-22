@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CaseData, Citizen, Language } from "../types";
+import { CaseData, Citizen, Language, Difficulty } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -72,13 +72,34 @@ const CASE_SCHEMA: Schema = {
   required: ["type", "title", "caseNumber", "description", "location", "priority", "timestamp", "suspects", "evidence", "correctSolution"],
 };
 
-export const generateCase = async (lang: Language): Promise<CaseData> => {
+export const generateCase = async (lang: Language, difficulty: Difficulty): Promise<CaseData> => {
   const langInstruction = lang === 'FI' ? "GENERATE ALL CONTENT IN FINNISH (SUOMI). Use Finnish names for locations/people if appropriate." : "Generate content in English.";
+
+  let difficultyInstruction = "";
+  switch(difficulty) {
+    case 'EASY':
+      difficultyInstruction = "Difficulty: EASY. Create 2 suspects. The evidence should CLEARLY point to one suspect. The innocent suspect has a solid alibi.";
+      break;
+    case 'MEDIUM':
+      difficultyInstruction = "Difficulty: MEDIUM. Create 3 suspects. The evidence should be standard police work. One suspect has a weak alibi, one has a good alibi.";
+      break;
+    case 'HARD':
+      difficultyInstruction = "Difficulty: HARD. Create 4 suspects. The evidence should be conflicting or circumstantial. Multiple suspects should have motives. The truth requires careful reading.";
+      break;
+    case 'INSANE':
+      difficultyInstruction = "Difficulty: INSANE. Create 5 suspects. Everyone looks guilty. The evidence is extremely subtle. Alibis are messy or unverified. High complexity.";
+      break;
+    case 'UNSOLVABLE':
+      difficultyInstruction = "Difficulty: NIGHTMARE. Create 5 suspects. The crime is complex (e.g., conspiracy, organized crime). Evidence is scarce and ambiguous. Only one tiny detail reveals the truth.";
+      break;
+  }
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Generate a realistic urban police investigation case. No sci-fi. Realistic crimes only. 3 to 4 suspects. Only 1 is guilty. Make the evidence subtle but solvable. ${langInstruction}`,
+      contents: `Generate a realistic urban police investigation case. No sci-fi. Realistic crimes only. 
+      ${difficultyInstruction}
+      ${langInstruction}`,
       config: {
         responseMimeType: "application/json",
         responseSchema: CASE_SCHEMA,
