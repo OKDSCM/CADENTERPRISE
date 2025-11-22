@@ -7,9 +7,10 @@ interface CityMapProps {
   citizens: Citizen[];
   onSelectDispatch?: (id: number) => void;
   language: Language;
+  mapUrl?: string;
 }
 
-export const CityMap: React.FC<CityMapProps> = ({ dispatchQueue, citizens, onSelectDispatch, language }) => {
+export const CityMap: React.FC<CityMapProps> = ({ dispatchQueue, citizens, onSelectDispatch, language, mapUrl }) => {
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -17,6 +18,8 @@ export const CityMap: React.FC<CityMapProps> = ({ dispatchQueue, citizens, onSel
   const [showCitizens, setShowCitizens] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const currentMapUrl = mapUrl || 'https://i.postimg.cc/GmfbF3W8/image.png';
 
   const t = {
     EN: {
@@ -83,7 +86,7 @@ export const CityMap: React.FC<CityMapProps> = ({ dispatchQueue, citizens, onSel
           className="absolute top-0 left-0 w-full h-full transition-transform duration-75 ease-out origin-center"
           style={{ 
             transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-            backgroundImage: `url('https://i.postimg.cc/GmfbF3W8/image.png')`,
+            backgroundImage: `url('${currentMapUrl}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}

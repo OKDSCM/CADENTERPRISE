@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { GameState, CaseData, Citizen, DispatchCall, Language, Difficulty, Emergency } from './types';
+import { GameState, CaseData, Citizen, DispatchCall, Language, Difficulty, Emergency, MapConfig } from './types';
 import { CityMap } from './components/CityMap';
 import { SolvingTable } from './components/SolvingTable';
 import { CitizenDatabase } from './components/CitizenDatabase';
@@ -40,6 +40,11 @@ const generateMockCitizens = (count: number): Citizen[] => {
   });
 };
 
+const MAP_OPTIONS: MapConfig[] = [
+  { id: 'map1', name: 'DOWNTOWN SECTOR A', url: 'https://i.postimg.cc/GmfbF3W8/image.png' },
+  { id: 'map2', name: 'NORTH DISTRICT', url: 'https://i.postimg.cc/rFhpjRzs/image.png' }
+];
+
 // --- TRANSLATIONS ---
 const translations = {
   EN: {
@@ -69,7 +74,10 @@ const translations = {
     signalLost: "SIGNAL LOST - SUSPECT ESCAPED",
     crisisAverted: "CRISIS AVERTED - TARGET NEUTRALIZED",
     wrongChoice: "INCORRECT PROTOCOL - UNIT COMPROMISED",
-    scanning: "SCANNING FREQUENCIES..."
+    scanning: "SCANNING FREQUENCIES...",
+    selectMap: "SELECT SECTOR",
+    availableMaps: "Available Deployment Zones",
+    select: "SELECT"
   },
   FI: {
     unit: "YKSIKKÖ 44-ALPHA // KIRJAUTUNUT",
@@ -98,12 +106,16 @@ const translations = {
     signalLost: "SIGNAALI KATKESI - EPÄILTY PAKENI",
     crisisAverted: "KRIISI VÄLTETTY - KOHDE NEUTRALISOITU",
     wrongChoice: "VÄÄRÄ PROTOKOLLA - YKSIKKÖ VAARASSA",
-    scanning: "SKANNATAAN TAAJUUKSIA..."
+    scanning: "SKANNATAAN TAAJUUKSIA...",
+    selectMap: "VALITSE SEKTORI",
+    availableMaps: "Saatavilla olevat alueet",
+    select: "VALITSE"
   }
 };
 
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language | null>(null);
+  const [selectedMapUrl, setSelectedMapUrl] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
   const [gameState, setGameState] = useState<GameState>(GameState.DASHBOARD);
   const [activeCase, setActiveCase] = useState<CaseData | null>(null);
@@ -292,6 +304,33 @@ const App: React.FC = () => {
 
   const t = translations[language];
 
+  if (!selectedMapUrl) {
+    return (
+      <div className="w-screen h-screen bg-slate-900 flex items-center justify-center">
+         <div className="bg-black border border-slate-700 p-8 rounded-lg max-w-4xl w-full shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+            <h1 className="text-3xl text-center font-mono text-blue-400 mb-8 uppercase tracking-[0.2em]">{t.selectMap}</h1>
+            <div className="grid grid-cols-2 gap-6">
+               {MAP_OPTIONS.map(map => (
+                 <div 
+                   key={map.id}
+                   onClick={() => setSelectedMapUrl(map.url)}
+                   className="group relative border-2 border-slate-700 hover:border-blue-500 rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02]"
+                 >
+                   <div className="h-48 bg-slate-800">
+                      <img src={map.url} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                   </div>
+                   <div className="p-4 bg-slate-900">
+                      <h3 className="text-white font-bold font-mono text-lg">{map.name}</h3>
+                      <div className="text-slate-500 text-xs uppercase mt-1">{t.select} &rarr;</div>
+                   </div>
+                 </div>
+               ))}
+            </div>
+         </div>
+      </div>
+    );
+  }
+
   if (!difficulty) {
     return (
       <div className="w-screen h-screen bg-slate-900 flex items-center justify-center overflow-hidden relative">
@@ -354,7 +393,7 @@ const App: React.FC = () => {
           {t.mapSystem}
         </div>
         <div className="flex-1 h-full">
-          <CityMap dispatchQueue={dispatchQueue} citizens={citizenDB} language={language} />
+          <CityMap dispatchQueue={dispatchQueue} citizens={citizenDB} language={language} mapUrl={selectedMapUrl} />
         </div>
       </div>
 

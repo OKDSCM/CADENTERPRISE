@@ -92,3 +92,29 @@ export interface Emergency {
   duration: number; // seconds
   active: boolean;
 }
+
+// --- NEW TYPES FOR SYSTEM UPDATE ---
+
+export interface PoliceUnit {
+  id: string;
+  name: string;
+  type: 'FORENSICS' | 'SWAT' | 'K9' | 'CORONER' | 'PATROL';
+  status: 'AVAILABLE' | 'BUSY' | 'ON_SCENE';
+  specialty: string;
+}
+
+export interface FileSystemNode {
+  id: string;
+  name: string;
+  type: 'FOLDER' | 'FILE';
+  fileType?: 'TEXT' | 'IMAGE' | 'RECORD' | 'VIDEO';
+  content?: string;
+  children?: FileSystemNode[];
+  parentId?: string;
+}
+
+export interface MapConfig {
+  id: string;
+  name: string;
+  url: string;
+}

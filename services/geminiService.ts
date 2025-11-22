@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CaseData, Citizen, Language, Difficulty } from "../types";
+import { CaseData, Citizen, Language, Difficulty, PoliceUnit } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -175,6 +175,35 @@ export const simulatePhoneCall = async (
   });
 
   return response.text || "(Line disconnected)";
+};
+
+export const performUnitAction = async (unit: PoliceUnit, instruction: string, currentCase: CaseData, lang: Language): Promise<string> => {
+   const langInstruction = lang === 'FI' ? "REPLY IN FINNISH (SUOMI)." : "Reply in English.";
+
+   const context = `
+    You are simulating a response from a ${unit.type} unit named "${unit.name}".
+    The dispatcher has sent you to the scene or asked for a check.
+    
+    Case Details:
+    Crime: ${currentCase.title}
+    Evidence: ${JSON.stringify(currentCase.evidence)}
+    Solution: ${currentCase.correctSolution.guiltySuspectId} is guilty because ${currentCase.correctSolution.reasoning}.
+
+    Dispatcher Instruction: "${instruction}"
+
+    Your Task:
+    - If the instruction matches your specialty (e.g. Forensics checking for prints), give a Realistic result.
+    - If the instruction reveals a clue mentioned in the solution, HINT at it strongly.
+    - Be concise. Use radio terminology (e.g., "10-4", "Copy that").
+    ${langInstruction}
+   `;
+
+   const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: context,
+  });
+
+  return response.text || "Radio silence...";
 };
 
 export const askAIHelper = async (query: string, currentCase: CaseData, lang: Language): Promise<string> => {
