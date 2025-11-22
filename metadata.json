@@ -1,0 +1,7 @@
+{
+  "name": "SENTINEL: Dispatch & Investigation",
+  "description": "A high-fidelity security dispatcher simulator. Scan frequencies, monitor CCTV, manage databases, and utilize AI to solve procedurally generated crimes.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
